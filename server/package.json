@@ -1,0 +1,23 @@
+{
+  "name": "fishsticks-server",
+  "version": "1.0.0",
+  "description": "it's just like real life",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "build": "webpack",
+    "start": "node server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.22.20",
+    "babel-loader": "^9.1.3"
+  }
+}
