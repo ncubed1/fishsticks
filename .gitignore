@@ -1,7 +1,36 @@
-todo.md
+# dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
+# Turborepo
+.turbo
+
+# build outputs
+dist
+build
+out
+.next
+coverage
+*.tsbuildinfo
+
+# Rust / WebAssembly
+target/
+packages/ui-functions/pkg/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+
+# local env files
+.env*.local
+
+# project specific
 /dev_vids
-
-/ui-functions
-
-/server
+_TODO.md
+_DESIGN.md

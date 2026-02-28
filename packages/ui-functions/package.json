@@ -1,0 +1,12 @@
+{
+  "name": "ui-functions",
+  "version": "0.1.0",
+  "main": "pkg/ui_functions.js",
+  "types": "pkg/ui_functions.d.ts",
+  "scripts": {
+    "build": "wasm-pack build --target web"
+  },
+  "files": [
+    "pkg"
+  ]
+}

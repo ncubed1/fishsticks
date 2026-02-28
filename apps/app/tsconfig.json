@@ -1,0 +1,14 @@
+{
+  "extends": "@fishsticks/config/tsconfig.base.json",
+  "include": ["src", "vite.config.ts", "declarations.d.ts", "vite-env.d.ts"],
+  "exclude": ["dist", "node_modules"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "module": "esnext", "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "paths": {
+      "@": ["./src"],
+      "@/*": ["./src/*"]
+    }
+  }
+}
