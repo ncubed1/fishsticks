@@ -1,4 +1,4 @@
-name: Deploy React to Pages
+name: Deploy Fishsticks to Pages
 
 on:
   push:

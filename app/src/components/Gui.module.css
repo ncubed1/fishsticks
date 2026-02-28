@@ -1,6 +1,7 @@
 .gui {
   position: fixed;
   font-family:  Arial, Helvetica, sans-serif;
+  outline: none;
 }
 
 #control{

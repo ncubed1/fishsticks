@@ -1,5 +1,6 @@
 import styles from './Controls.module.css';
-import { useRef } from 'react';
+import { useRef, useEffect } from 'react';
+import { objects } from '../../creator.js'
 
 type props = {
   isStopped: boolean
@@ -9,16 +10,20 @@ type props = {
 };
 
 export default function Speed({ isStopped, speed, speedStep, setSpeed }: props) {
-  let inputRef = useRef(null);
+  let speedRef = useRef(null);
 
   const speedDown = () => {
-    inputRef.current.stepDown();
-    setSpeed(inputRef.current.value);
+    speedRef.current.stepDown();
+    setSpeed(speedRef.current.value);
   }
   const speedUp = () => {
-    inputRef.current.stepUp();
-    setSpeed(inputRef.current.value);
+    speedRef.current.stepUp();
+    setSpeed(speedRef.current.value);
   }
+
+  useEffect(()=>{
+    objects.setSpeed(speed);
+  }, [speed])
 
   return (
     <>
@@ -30,7 +35,7 @@ export default function Speed({ isStopped, speed, speedStep, setSpeed }: props) 
           &lt;
         </div>
         <input
-          ref={inputRef}
+          ref={speedRef}
           className={styles['speed-input']}
           type='number'
           step={speedStep}

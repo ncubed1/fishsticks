@@ -312,10 +312,10 @@ export class RectPhy extends ObjectPhysics {
     }
 
     setWidth(w) {
-        this.collider.shape.halfExtents.x = w/2;
+        this.collider.setShape(new RAPIER.Cuboid(w/2, this.getHeight()/2));
     }
 
     setHeight(h) {
-        this.collider.shape.halfExtents.y = h/2;
+        this.collider.setShape(new RAPIER.Cuboid(this.getWidth()/2, h/2));
     }
 }

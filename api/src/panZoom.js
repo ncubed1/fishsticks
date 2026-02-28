@@ -17,6 +17,7 @@ export function zoom(app, canvas, scale, callback) {
         }, 300);
         canvas.scale.x *= factor;
         canvas.scale.y *= factor;
+        console.log(e.clientX);
         canvas.x += (e.clientX - canvas.x) * (1 - factor);
         canvas.y += (e.clientY - canvas.y) * (1 - factor);
         app.renderer.render(app.stage);
@@ -26,7 +27,7 @@ export function zoom(app, canvas, scale, callback) {
 
 
 export function ewResize(ele, scale, onResize) {
-    ele.addEventListener("mousedown", function (e) {
+    ele.addEventListener("pointerdown", function (e) {
         if (e && (e.which === 1 || e.button === 0)) {
             document.addEventListener("contextmenu", (e) => { e.preventDefault(); return false; }, { "once": true });
             let lastX = e.clientX;
@@ -43,12 +44,12 @@ export function ewResize(ele, scale, onResize) {
                     currentX = e.clientX;
                 }
             }
-            ele.addEventListener("mousemove", onMouseMove);
+            ele.addEventListener("pointermove", onMouseMove);
 
-            window.addEventListener("mouseup", function () {
+            window.addEventListener("pointerup", function () {
                 clearInterval(resizeInterval);
                 ele.style.cursor = "default";
-                ele.removeEventListener("mousemove", onMouseMove);
+                ele.removeEventListener("pointermove", onMouseMove);
             }, { "once": true });
         }
     });
@@ -56,8 +57,8 @@ export function ewResize(ele, scale, onResize) {
 
 
 export function pan(app, canvas, callback) {
-    app.canvas.addEventListener("mousedown", function (e) {
-        if (e && (e.which === 3 || e.button === 2)) {
+    app.canvas.addEventListener("pointerdown", function (e) {
+        if (e && (e.button === 0)) {
             app.view.style.cursor = "grabbing";
             document.addEventListener("contextmenu", (e) => { e.preventDefault(); return false; }, { "once": true });
             let lastX = e.offsetX;
@@ -76,11 +77,11 @@ export function pan(app, canvas, callback) {
                 }
             }
 
-            app.canvas.addEventListener("mousemove", onMouseMove);
+            app.canvas.addEventListener("pointermove", onMouseMove);
 
-            window.addEventListener("mouseup", function () {
+            window.addEventListener("pointerup", function () {
                 app.canvas.style.cursor = "default";
-                app.canvas.removeEventListener("mousemove", onMouseMove);
+                app.canvas.removeEventListener("pointermove", onMouseMove);
             }, { "once": true });
         }
     });

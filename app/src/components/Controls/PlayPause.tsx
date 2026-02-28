@@ -1,16 +1,17 @@
-import { useState, SetStateAction } from "react";
+import { useEffect } from "react";
 import styles from "./Controls.module.css";
 import { objects } from "../../creator.js";
-import playSVG from "./play-solid.svg";
-import pauseSVG from "./pause-solid.svg";
+import {ReactComponent as PlaySVG} from "./play-solid.svg";
+import {ReactComponent as PauseSVG}from "./pause-solid.svg";
 
 type props = {
-  isStopped: boolean; 
+  isStopped: boolean;
   isPaused: boolean;
   setIsPaused: (isPaused: boolean) => void;
 };
 
 export default function PlayPause({ isStopped, isPaused, setIsPaused }: props) {
+
   const pause = () => {
     objects.pause();
     console.log("pause");
@@ -32,10 +33,10 @@ export default function PlayPause({ isStopped, isPaused, setIsPaused }: props) {
       {!isStopped && (
         <div onClick={handleClick}>
           {isPaused && (
-            <img className={`${styles.play} ${styles.button}`} src={playSVG} alt="play" />
+            <PlaySVG className={`${styles.play} ${styles.button}`} alt="play" />
           )}
           {!isPaused && (
-            <img className={`${styles.pause} ${styles.button}`} src={pauseSVG} alt="pause" ></img>
+            <PauseSVG className={`${styles.pause} ${styles.button}`} alt="pause" />
           )}
         </div>
       )}

@@ -6,16 +6,28 @@ import { ewResize } from './panZoom.js';
 
 let { Simulation, BallPhy, RectPhy } = await import('./physics.js')
 
+const s = 100;
+
+function m2pos(pos) {
+    let x = pos.x * s;
+    let y = -pos.y * s;
+    return {x, y};
+}
+
 export default class Objects {
     constructor(simulationProps, canvasProps) {
         const { timeStep = 1 / 60 } = simulationProps;
         this.timeStep = timeStep;
+
+        this.speed = 1;
 
         this.objects = [];
 
         this.timeStep = timeStep;
         this.totalPausedTime = 0;
         this.mainLoop;
+
+        canvasProps.s = s;
 
         this.canvas = new Canvas(canvasProps);
         this.view = this.canvas.view;
@@ -40,6 +52,18 @@ export default class Objects {
         });
     }
 
+    moveCanvasBy({x: dx, y: dy}) {
+        const {x, y} = this.canvas.getCanvasPosition();
+        this.canvas.moveCanvas({x: x + dx, y: y + dy});
+        this.canvas.updateCanvas();
+    }
+
+    multiplyCanvasScale({mulX, mulY}) {
+        const {x, y} = this.canvas.getCanvasScale();
+        this.canvas.scaleCanvas({x: x * mulX, y: y * mulY});
+        this.canvas.updateCanvas()
+    }
+
     start() {
         this.canvas.addTicker(this.tickerFunc);
         // this.canvas.start();
@@ -57,10 +81,15 @@ export default class Objects {
 
         this.mainLoop = setInterval(() => {
             let startElapsedTime = performance.now() / 1000.0;
-            while (startElapsedTime - this.simulation.simulationTime - this.totalPausedTime > this.timeStep) {
+            let timeElapsed = startElapsedTime - this.totalPausedTime - this.simulation.simulationTime
+            for (let i = 0; i < (timeElapsed / this.timeStep); i++) {
                 this.step();
             }
         }, 1000.0 * this.timeStep);
+    }
+
+    setSpeed(speed) {
+        this.speed = speed;
     }
 
     pause() {
@@ -112,12 +141,12 @@ export default class Objects {
 
     removeObject(obj) {
         const index = this.objects.indexOf(obj);
-        if (index !== -1) {
-            this.objects.splice(index, 1);
-        }
         obj.physicsObj.removeRigidBody();
         obj.graphicsObj.remove();
         obj.removeAllVectors();
+        if (index !== -1) {
+            this.objects.splice(index, 1);
+        }
     }
 
     getObjectFromPos(pos) {
@@ -197,10 +226,10 @@ class Object {
     }
 
     updatePosition() {
-        this.graphicsObj.setPosition(this.physicsObj.getTranslation());
+        this.graphicsObj.setPosition(m2pos(this.physicsObj.getTranslation()));
     }
     updateRotation() {
-        this.graphicsObj.setRotation(this.physicsObj.getRotation());
+        this.graphicsObj.setRotation(this.physicsObj.getRotation() * s);
     }
 
     getRigidBodyType() {
@@ -241,7 +270,7 @@ class Object {
 
     setPosition(pos) {
         this.physicsObj.setTranslation(pos);
-        this.graphicsObj.setPosition(pos);
+        this.graphicsObj.setPosition(m2pos(pos));
     }
 
     setMass(mass) {
@@ -277,7 +306,7 @@ class Object {
     }
 
     getBorderPoint(position) {
-        return this.graphicsObj.getBorderPoint(position);
+        return this.graphicsObj.getBorderPoint(m2pos(position));
     }
 
     deselect() {
@@ -293,17 +322,12 @@ class Ball extends Object {
         this.vectors = new Vectors(this, objects.simulation, objects.canvas);
     }
 
-    // ++ grow
-    // +- grow
-    // -+
-    // -- shrink
-
     scale(borderPoint, scaleLength) {
         const { x, y } = this.getPosition();
         const r = this.getRadius();
         const { x: dx, y: dy } = { x: scaleLength.x, y: scaleLength.y };
         let newPos = { x, y };
-        let newRadius = r;
+        let newLength = r;
         let l = Math.sqrt(Math.pow(dx,2) + Math.pow(dy,2));
         let scaleVector;
         const angle = Math.atan2(dy, dx)
@@ -312,7 +336,7 @@ class Ball extends Object {
         switch (borderPoint) {
             case 'topLeft':
                 scaleVector = l * Math.cos(Math.PI/4*3 - angle)
-                newRadius += scaleVector/multiplier;
+                newLength += scaleVector/multiplier;
                 newPos.x -=  scaleVector/multiplier;
                 newPos.y +=  scaleVector/multiplier;
                 break;
@@ -320,29 +344,30 @@ class Ball extends Object {
             case 'topRight':
                 scaleVector = l * Math.cos(Math.PI/4 - angle)
                 // console.log((angle >= -Math.PI/4 && angle <= Math.PI/4*3) ? 1 : -1)
-                newRadius += scaleVector/multiplier;
+                newLength += scaleVector/multiplier;
                 newPos.x +=  scaleVector/multiplier;
                 newPos.y +=  scaleVector/multiplier;
                 break;
 
             case 'bottomLeft':
                 scaleVector = l * Math.cos(-Math.PI/4*3 - angle)
-                newRadius += scaleVector/multiplier;
+                newLength += scaleVector/multiplier;
                 newPos.x -=  scaleVector/multiplier;
                 newPos.y -=  scaleVector/multiplier;
                 break;
 
             case 'bottomRight':
                 scaleVector = l * Math.cos(-Math.PI/4 - angle)
-                newRadius += scaleVector/multiplier;
+                newLength += scaleVector/multiplier;
                 newPos.x +=  scaleVector/multiplier;
                 newPos.y -=  scaleVector/multiplier;
                 break;
         }
-
-        this.setRadius(newRadius);
-        this.setPosition(newPos);
-        this.graphicsObj.drawBorder();
+        if (newLength > 0.05 / this.canvas.pixiCanvas.scale.x) {
+            this.setRadius(newLength);
+            this.setPosition(newPos);
+            this.graphicsObj.drawBorder();
+        }
     }
 
     getRadius() {
@@ -351,7 +376,7 @@ class Ball extends Object {
 
     setRadius(radius) {
         this.physicsObj.setRadius(radius);
-        this.graphicsObj.setRadius(radius);
+        this.graphicsObj.setRadius(radius * s);
     }
 }
 
@@ -361,6 +386,51 @@ class Rect extends Object {
         this.physicsObj = new RectPhy(this.sim, this.props);
         this.graphicsObj = new RectG(this.canvas, this.props);
         this.vectors = new Vectors(this, objects.simulation, objects.canvas);
+    }
+
+    scale(borderPoint, scaleLength) {
+        const { x, y } = this.getPosition();
+        const w = this.getWidth();
+        const h = this.getHeight();
+        const { x: dx, y: dy } = { x: scaleLength.x, y: scaleLength.y };
+        let newPos = { x, y };
+        let newWidth = w;
+        let newHeight = h;
+        let multiplier = 2;
+        console.log(dx, newWidth)
+
+        switch (borderPoint) {
+            case 'topLeft':
+                newWidth -= dx
+                newHeight += dy
+                break;
+
+            case 'topRight':
+                newWidth += dx
+                newHeight += dy
+                break;
+
+            case 'bottomLeft':
+                newWidth -= dx
+                newHeight -= dy
+                break;
+
+            case 'bottomRight':
+                newWidth += dx;
+                newHeight -= dy;
+                break;
+        }
+
+        if (newWidth > 0.05 / this.canvas.pixiCanvas.scale.x) {
+            newPos.x += dx/multiplier;
+            this.setWidth(newWidth);
+        }
+        if (newHeight > 0.05 / this.canvas.pixiCanvas.scale.y) {
+            newPos.y += dy/multiplier;
+            this.setHeight(newHeight);
+        }
+        this.setPosition({ x: newPos.x, y: newPos.y });
+        this.graphicsObj.drawBorder();
     }
 
     getWidth() {
@@ -373,11 +443,11 @@ class Rect extends Object {
 
     setWidth(w) {
         this.physicsObj.setWidth(w);
-        this.graphicsObj.setWidth(w);
+        this.graphicsObj.setWidth(w * s);
     }
 
     setHeight(h) {
         this.physicsObj.setHeight(h);
-        this.graphicsObj.setHeight(h);
+        this.graphicsObj.setHeight(h * s);
     }
 }

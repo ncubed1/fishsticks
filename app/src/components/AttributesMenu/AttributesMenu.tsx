@@ -3,21 +3,23 @@ import styles from './AttributesMenu.module.css';
 
 type props = {
   position: { x: number, y: number };
-  object: any;
+  objectProp: any;
 }
 
-export default function AttributesMenu({ position, object }: props) {
-  let objectProps = useRef(object.props);
+export default function AttributesMenu({ position, objectProp }: props) {
+  let objectProps = useRef(objectProp.props);
+  let [object, setObject] = useState(objectProp)
   const [id, setId] = useState('');
   const [expr, setExpr] = useState('');
 
   useEffect(() => {
     objectProps.current = object.props;
-  }, []);
+    setObject(objectProp);
+  }, [objectProp]);
 
   return (
     <div style={{ position: "absolute", left: position.x, top: position.y }} className={styles.menu}>
-    <table style={{width: "100%"}}>
+    <table style={{ width: "100%" }}>
       <tbody>
         <tr>
           <td>Position</td>
