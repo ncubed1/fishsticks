@@ -1,10 +1,15 @@
 .gui {
   position: fixed;
-  font-family:  Arial, Helvetica, sans-serif;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  font-family: Arial, Helvetica, sans-serif;
   outline: none;
 }
 
-#control{
+#control {
   display: block;
 }
 
@@ -32,8 +37,8 @@
   border-radius: 500px;
   width: max-content;
   font-size: 1.7em;
-  margin-left:10px;
-  padding:2px 5px;
+  margin-left: 10px;
+  padding: 2px 5px;
 }
 
 #edit {
@@ -47,11 +52,11 @@
   border-radius: 500px;
   width: max-content;
   font-size: 1.7em;
-  margin-left:10px;
-  padding:2px 5px;
+  margin-left: 10px;
+  padding: 2px 5px;
 }
 
 .edit-input {
   z-index: 2;
-  display:none;
+  display: none;
 }

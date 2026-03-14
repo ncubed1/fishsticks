@@ -1,4 +1,4 @@
-let RAPIER;
+import RAPIER from "@dimforge/rapier2d-compat";
 
 export class Simulation {
   timeStep: number;
@@ -19,10 +19,9 @@ export class Simulation {
 
     // BUG: rapier2d does not work but rapier2d-compat does
     // RAPIER = await import('@dimforge/rapier2d');
-    RAPIER = await import("@dimforge/rapier2d-compat");
     await RAPIER.init();
 
-    let integrationParams = new RAPIER.IntegrationParameters();
+    let integrationParams: any = new RAPIER.IntegrationParameters();
     integrationParams.dt = this.timeStep; // 1/60
     integrationParams.maxCcdSubsteps = 50; // 50
     integrationParams.allowedLinearError = 0.001; // 0.001; 0.00001 (accuracy)
@@ -49,7 +48,7 @@ export class Simulation {
   }
 
   updateColliders() {
-    this.rapierSim.updateSceneQueries();
+    this.rapierSim.propagateModifiedBodyPositionsToColliders();
   }
 
   createJointParams(pos1, rot1, pos2, rot2) {
@@ -58,10 +57,18 @@ export class Simulation {
   }
 
   step() {
+    if (!this.rapierSim) {
+      return;
+    }
+
     this.rapierSim.step();
   }
 
   findCollidersFromPos(pos) {
+    if (!this.rapierSim) {
+      return [];
+    }
+
     const colliders = [];
     this.rapierSim.intersectionsWithPoint(pos, (handle) => {
       colliders.push(handle);
@@ -71,19 +78,31 @@ export class Simulation {
   }
 
   putRigidBody(rigidBodyDesc) {
+    if (!this.rapierSim) {
+      return null;
+    }
+
     return this.rapierSim.createRigidBody(rigidBodyDesc);
   }
 
   addCollider(colliderDesc, rigidBody) {
+    if (!this.rapierSim || !rigidBody) {
+      return null;
+    }
+
     return this.rapierSim.createCollider(colliderDesc, rigidBody);
   }
 
   removeCollider(collider) {
     // unused
-    this.rapierSim.removeCollider(collider);
+    this.rapierSim.removeCollider(collider, true);
   }
 
   removeRigidBody(rigidBody) {
+    if (!this.rapierSim || !rigidBody) {
+      return;
+    }
+
     // will delete all colliders attached
     this.rapierSim.removeRigidBody(rigidBody);
   }
@@ -173,7 +192,7 @@ class ObjectPhysics {
   }
 
   createCollider() {
-    let colliderDesc = RAPIER.ColliderDesc;
+    let colliderDesc: any = RAPIER.ColliderDesc;
     return colliderDesc;
   }
 
@@ -207,7 +226,7 @@ class ObjectPhysics {
     const bodyType = this.rigidBody.bodyType();
     if (bodyType === RAPIER.RigidBodyType.Dynamic) {
       return "dynamic";
-    } else if (bodyType === RAPIER.RigidBodyType.static) {
+    } else if (bodyType === RAPIER.RigidBodyType.Fixed) {
       return "static";
     }
   }
@@ -291,7 +310,8 @@ class ObjectPhysics {
   }
 }
 
-export class BallPhy extends ObjectPhysics { r: any;
+export class BallPhy extends ObjectPhysics {
+  r: any;
   constructor(sim, props) {
     super(sim, props);
     const { r = 0 } = props;
@@ -318,7 +338,9 @@ export class BallPhy extends ObjectPhysics { r: any;
   }
 }
 
-export class RectPhy extends ObjectPhysics { w: any; h: any;
+export class RectPhy extends ObjectPhysics {
+  w: any;
+  h: any;
   constructor(sim, props) {
     super(sim, props);
     const { w = 0, h = 0 } = props;

@@ -1,19 +1,16 @@
-import styles from "./Sidebar.module.css"; 
-import { useState, useRef, useEffect } from "react";
-import Sidebutton from "./SideButton";
+import styles from "./Sidebar.module.css";
+import UserSettingsButton from "./UserSettingsButton";
+import SceneSettingsButton from "./SceneSettingsButton";
+import GuideButton from "./GuideButton";
+import ExplorerButton from "./ExplorerButton";
 
 export default function Sidebar() {
-
-  const [activeRef, setActiveRef] = useState(null);
-
   return (
-    <>
-      <div className={`${styles.sidebar}`}>
-        <Sidebutton activeRef={activeRef} setActiveRef={setActiveRef}>Menu 1</Sidebutton>
-        <Sidebutton activeRef={activeRef} setActiveRef={setActiveRef}>Menu 2</Sidebutton>
-        <Sidebutton activeRef={activeRef} setActiveRef={setActiveRef}>Menu 3</Sidebutton>
-        <Sidebutton activeRef={activeRef} setActiveRef={setActiveRef}>Menu 4</Sidebutton>
-      </div>
-    </>
-  )
+    <div className={styles.sidebar}>
+      <UserSettingsButton />
+      <SceneSettingsButton />
+      <GuideButton />
+      <ExplorerButton />
+    </div>
+  );
 }

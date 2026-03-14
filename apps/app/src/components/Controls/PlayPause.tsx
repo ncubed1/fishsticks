@@ -1,26 +1,28 @@
-import { useEffect } from "react";
 import styles from "./Controls.module.css";
 import { objects } from "../../creator.js";
-import PlaySVG from "./play-solid.svg?react";
-import PauseSVG from "./pause-solid.svg?react";
+import { Play, Pause } from "lucide-react";
 
 type props = {
-  isStopped: boolean;
   isPaused: boolean;
   setIsPaused: (isPaused: boolean) => void;
 };
 
-export default function PlayPause({ isStopped, isPaused, setIsPaused }: props) {
-
+export default function PlayPause({ isPaused, setIsPaused }: props) {
   const pause = () => {
+    if (!objects) {
+      return;
+    }
+
     objects.pause();
-    console.log("pause");
     setIsPaused(true);
   };
 
   const play = () => {
+    if (!objects) {
+      return;
+    }
+
     objects.play();
-    console.log("play");
   };
 
   const handleClick = () => {
@@ -29,17 +31,17 @@ export default function PlayPause({ isStopped, isPaused, setIsPaused }: props) {
   };
 
   return (
-    <>
-      {!isStopped && (
-        <div onClick={handleClick}>
-          {isPaused && (
-            <PlaySVG className={`${styles.play} ${styles.button}`} />
-          )}
-          {!isPaused && (
-            <PauseSVG className={`${styles.pause} ${styles.button}`} />
-          )}
-        </div>
+    <button
+      onClick={handleClick}
+      className={`${styles.button} ${isPaused ? styles.play : styles.pause}`}
+      aria-label={isPaused ? "Play" : "Pause"}
+      title={isPaused ? "Play" : "Pause"}
+    >
+      {isPaused ? (
+        <Play size={18} fill="currentColor" />
+      ) : (
+        <Pause size={18} fill="currentColor" />
       )}
-    </>
+    </button>
   );
 }

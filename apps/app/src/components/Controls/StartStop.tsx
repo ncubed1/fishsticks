@@ -1,57 +1,30 @@
-import { useState, SetStateAction } from "react";
 import styles from "./Controls.module.css";
-import { objects } from "../../creator.js";
+import { Circle, CircleSmall, Plus, Minus } from "lucide-react";
 
 type props = {
-  isStopped: boolean;
-  setIsStopped: (isStopped: boolean) => void;
-  setIsPaused: (isPaused: boolean) => void;
+  isMinimized: boolean;
+  setIsMinimized: (isMinimized: boolean) => void;
 };
 
-const simpleProps = {
-  pos: { x: -1.0, y: 0.0 },
-  r: 0.1,
-  color: 0xff0000,
-  mass: 1.0,
-  restitution: 1.0,
-  rigidBody: "dynamic",
-  canSleep: false,
-  ccd: true,
-  v: { x: 0.0, y: 0.0 },
-};
-
-export default function StartStop({
-  isStopped,
-  setIsStopped,
-  setIsPaused,
-}: props) {
-  const stop = () => {
-    objects.stop();
-    console.log("stop");
-    setIsPaused(true);
-  };
-
-  const start = () => {
-    objects.start();
-    console.log("start");
-  };
-
+export default function StartStop({ isMinimized, setIsMinimized }: props) {
   const handleClick = () => {
-    isStopped ? start() : stop();
-    setIsStopped(!isStopped);
-
-    // let ball = objects.createBall(simpleProps);
-    // ball.put();
+    setIsMinimized(!isMinimized);
   };
 
   return (
-    <div onClick={handleClick}>
-      {isStopped && (
-        <div className={`${styles.start} ${styles.button}`}>Start</div>
-      )}
-      {!isStopped && (
-        <div className={`${styles.stop} ${styles.button}`}>Stop</div>
-      )}
-    </div>
+    <button
+      onClick={handleClick}
+      className={`${styles.primaryButton} ${isMinimized ? styles.start : styles.stop}`}
+      aria-label={isMinimized ? "Maximize controls" : "Minimize controls"}
+      title={isMinimized ? "Maximize controls" : "Minimize controls"}
+    >
+      <div
+        className={`${styles.primaryIcon} ${isMinimized ? styles.minimised : styles.maximised}`}
+      >
+        {/* <Circle size={24} /> */}
+        {isMinimized ? <Circle size={24} /> : <CircleSmall size={40} />}
+        {/* {isMinimized ? <Plus size={24} /> : <Minus size={24} />} */}
+      </div>
+    </button>
   );
 }

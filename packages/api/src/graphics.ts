@@ -5,19 +5,39 @@ function mod(n, m) {
   return ((n % m) + m) % m;
 }
 
+/**
+ * Returns the smallest "nice" step >= rawStep where the
+ * most-significant digit is 1, 2, or 5 (Desmos-style).
+ */
+function niceStep(rawStep: number): number {
+  if (rawStep <= 0) return 1;
+  const exp = Math.floor(Math.log10(rawStep));
+  const mag = Math.pow(10, exp);
+  const f = rawStep / mag; // in [1, 10)
+  const niceFraction = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10;
+  return niceFraction * mag;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  if (max <= min) {
+    return min;
+  }
+
+  return Math.min(Math.max(value, min), max);
+}
+
 class Canvas {
-
-
-
-
-
-
   backgroundColor: number | string;
   app: PIXI.Application;
   s: number;
   view: HTMLCanvasElement;
   grid: PIXI.Graphics;
   pixiCanvas: PIXI.Container;
+  handleWindowResize: () => void;
+  gridTextStyle: PIXI.TextStyle;
+  gridXLabels: PIXI.Text[];
+  gridYLabels: PIXI.Text[];
+  gridOriginLabel: PIXI.Text | null;
 
   constructor(props) {
     const { s = 100, backgroundColor = 0x1099bb } = props;
@@ -26,6 +46,18 @@ class Canvas {
     this.app = app;
     this.s = s;
     this.view = document.createElement("canvas");
+    this.gridTextStyle = new PIXI.TextStyle({
+      stroke: "ghostwhite",
+      fontSize: 14,
+    });
+    this.gridXLabels = [];
+    this.gridYLabels = [];
+    this.gridOriginLabel = null;
+    this.handleWindowResize = () => {
+      requestAnimationFrame(() => {
+        this.updateGrid();
+      });
+    };
   }
 
   async init() {
@@ -37,6 +69,7 @@ class Canvas {
     });
     this.app.canvas.id = "pixi-canvas";
     this.app.renderer.background.color = this.backgroundColor;
+    this.app.stage.sortableChildren = true;
 
     const canvas = new PIXI.Container();
     canvas.sortableChildren = true;
@@ -63,186 +96,184 @@ class Canvas {
     this.app.stage.addChild(canvas);
 
     this.pixiCanvas = canvas;
+    window.addEventListener("resize", this.handleWindowResize);
     // zoom(this.app, canvas, 0.05, ()=>{});
     this.updateGrid();
   }
 
-  // NOTE: very messy but it works, will clean up later
+  trimGridLabels(labels: PIXI.Text[], keepCount: number) {
+    const removedLabels = labels.splice(keepCount);
+
+    if (removedLabels.length === 0) {
+      return;
+    }
+
+    this.grid.removeChild(...removedLabels);
+    removedLabels.forEach((label) => label.destroy());
+  }
+
+  getGridLabel(labels: PIXI.Text[], index: number, text: string) {
+    let label = labels[index];
+
+    if (!label) {
+      label = new PIXI.Text({ text, style: this.gridTextStyle });
+      labels[index] = label;
+      this.grid.addChild(label);
+    }
+
+    label.text = text;
+    label.visible = true;
+    return label;
+  }
+
+  getOriginLabel() {
+    if (!this.gridOriginLabel) {
+      this.gridOriginLabel = new PIXI.Text({
+        text: "0",
+        style: this.gridTextStyle,
+      });
+      this.grid.addChild(this.gridOriginLabel);
+    }
+
+    return this.gridOriginLabel;
+  }
+
   updateGrid() {
-    let s = this.s;
-    let canvas = this.pixiCanvas;
-    let app = this.app;
-    let grid = this.grid;
-    let lineWidth = 1;
+    const canvas = this.pixiCanvas;
+    const app = this.app;
+    const grid = this.grid;
+    const lineWidth = 1;
+    const screenWidth = app.screen.width;
+    const screenHeight = app.screen.height;
+    const axisXVisible = canvas.x >= 0 && canvas.x <= screenWidth;
+    const axisYVisible = canvas.y >= 0 && canvas.y <= screenHeight;
 
     grid.clear();
 
-    // console.log(mod(numHalves,1))
-    let numHalves = -Math.log2(canvas.scale.x);
-    // let numHalves = 1;
-    let spacingMultiplier =
-      canvas.scale.x / Math.pow(2, Math.floor(-numHalves));
-    let lineSpacing = ((1 * s) / 5) * spacingMultiplier;
-    // let lineSpacing = 100/5 * canvas.scale.x * (mod(numHalves,1));
-    // const spacingMultiplier = 1;
+    const pixelsPerUnit = this.s * canvas.scale.x;
+    const rawMajorStep = this.s / pixelsPerUnit;
+    const majorStep = niceStep(rawMajorStep);
+    const majorStepPrecision = Math.max(0, -Math.floor(Math.log10(majorStep)));
+    const lineSpacing = (majorStep / 5) * pixelsPerUnit;
 
-    let numHorizontalLines = app.screen.height / lineSpacing + 1;
-    let initialY = mod(canvas.y, lineSpacing);
-    let initialLineNumY = Math.floor(canvas.y / lineSpacing);
+    const numHorizontalLines = Math.ceil(screenHeight / lineSpacing) + 1;
+    const initialY = mod(canvas.y, lineSpacing);
+    const initialLineNumY = Math.floor(canvas.y / lineSpacing);
 
-    let numVerticalLines = app.screen.width / lineSpacing + 1;
-    // console.log(numVerticalLines)
-    let initialX = mod(canvas.x, lineSpacing);
-    let initialLineNumX = Math.floor(canvas.x / lineSpacing);
+    const numVerticalLines = Math.ceil(screenWidth / lineSpacing) + 1;
+    const initialX = mod(canvas.x, lineSpacing);
+    const initialLineNumX = Math.floor(canvas.x / lineSpacing);
 
-    let numbersX = grid.getChildrenByLabel("x");
-    let numbersY = grid.getChildrenByLabel("y");
-    let number0 = grid.getChildrenByLabel("0");
+    let hasMinorLines = false;
+    for (let i = 0; i < numVerticalLines; i++) {
+      const lineNumX = initialLineNumX - i;
+      const x = initialX + i * lineSpacing;
 
-    let lenX = Math.floor(numVerticalLines / 5) - ((canvas.x < app.screen.width) ? 1 : 0);
-    let lenY =
-      Math.floor(numHorizontalLines / 5) - ((canvas.y < app.screen.height) ? 1 : 0);
-
-    grid.removeChild(...numbersX.splice(lenX));
-    grid.removeChild(...numbersY.splice(lenY));
-    numbersX = numbersX.splice(0, lenX);
-    numbersY = numbersY.splice(0, lenY);
-
-    const textStyle = new PIXI.TextStyle({
-      stroke: "ghostwhite",
-      
-      fontSize: 14,
-    });
-
-    for (let i = 0; i < Math.max(numVerticalLines, numHorizontalLines); i++) {
-      let lineNumX = initialLineNumX - i;
-      let lineOffsetX = mod(lineNumX, 5);
-      let x = initialX + i * lineSpacing;
-
-      let lineNumY = initialLineNumY - i;
-      let lineOffsetY = mod(lineNumY, 5);
-      let y = initialY + i * lineSpacing;
-
-      if (lineOffsetX != 0 && lineNumX != 0 && i < numVerticalLines) {
-        grid.moveTo(x, -app.screen.height / 2 - lineSpacing);
-        grid.lineTo(x, app.screen.height + lineSpacing);
-        grid.stroke({ width: lineWidth, color: "lightgrey" });
+      if (lineNumX === 0 || mod(lineNumX, 5) === 0) {
+        continue;
       }
-      if (lineOffsetY != 0 && lineNumY != 0 && i < numHorizontalLines) {
-        grid.moveTo(-app.screen.width / 2 - lineSpacing, y);
-        grid.lineTo(app.screen.width + lineSpacing, y);
-        grid.stroke({ width: lineWidth, color: "lightgrey" });
-      }
+
+      grid.moveTo(x, -screenHeight / 2 - lineSpacing);
+      grid.lineTo(x, screenHeight + lineSpacing);
+      hasMinorLines = true;
     }
 
-    for (let i = 0; i < Math.max(numVerticalLines, numHorizontalLines); i++) {
-      let lineNumX = initialLineNumX - i;
-      let lineOffsetX = mod(lineNumX, 5);
-      let x = initialX + i * lineSpacing;
+    for (let i = 0; i < numHorizontalLines; i++) {
+      const lineNumY = initialLineNumY - i;
+      const y = initialY + i * lineSpacing;
 
-      let lineNumY = initialLineNumY - i;
-      let lineOffsetY = mod(lineNumY, 5);
-      let y = initialY + i * lineSpacing;
-
-      if (lineNumX == 0) {
-        let number = grid.getChildByLabel("0");
-        if (number) {
-          number.y = canvas.y;
-          number.x = canvas.x - number.width - 5;
-        } else {
-          const number = new PIXI.Text({ text: "0", style: textStyle });
-          number.y = canvas.y;
-          number.x = canvas.x - number.width - 5;
-          number.label = "0";
-          grid.addChild(number);
-        }
+      if (lineNumY === 0 || mod(lineNumY, 5) === 0) {
+        continue;
       }
-      if (lineOffsetX == 0 && lineNumX != 0 && i < numVerticalLines) {
-        // numbers.forEach((number, j) => {
-        //     console.log(i)
-        //     console.log(Math.floor(i/5),j)
-        //     number.visible = Math.floor(i/5) == j;
-        // })
-        let number =
-          numbersX[
-            Math.floor(i / 5) - ((canvas.x < app.screen.width && lineNumX < 0) ? 1 : 0)
-          ];
-        // initialLineNumX = left most line num
-        // numbersX
-        // i = current line starting from left and 0
-        // lineOffsetX = lineNumX % 5 = (0, 4)
-        // lineNumX = current line num = initialLineNumX - i ()
-        // numVerticalLines (1, n)
 
-        let num = -((lineNumX / 5) * Math.pow(2, Math.ceil(numHalves)));
-
-        if (number) {
-          (number as any).text = num;
-          number.y = Math.min(
-            Math.max(canvas.y, 0),
-            app.screen.height - number.height,
-          );
-          number.x = x - number.width / 2;
-        } else {
-          const number = new PIXI.Text({ text: num, style: textStyle });
-          number.y = Math.min(
-            Math.max(canvas.y, 0),
-            app.screen.height - number.height,
-          );
-          number.x = x - number.width / 2;
-          number.label = "x";
-          grid.addChild(number);
-        }
-        // console.log(initialX); // -4.5
-        // console.log(i); // 4
-        // console.log(initialLineNumX);
-        // console.log(lineNumX); // -5
-        // console.log(x);
-        grid.moveTo(x, -app.screen.height / 2 - lineSpacing);
-        grid.lineTo(x, app.screen.height + lineSpacing);
-        grid.stroke({ width: lineWidth, color: "grey" });
-      }
-      if (lineOffsetY == 0 && lineNumY != 0 && i < numHorizontalLines) {
-        let index =
-          Math.floor(i / 5) - ((canvas.y < app.screen.height && lineNumY < 0) ? 1 : 0);
-        let numb = numbersY[index];
-
-        let num = (lineNumY / 5) * Math.pow(2, Math.ceil(numHalves));
-        if (numb) {
-          (numb as any).text = num;
-          numb.x = Math.min(
-            Math.max(canvas.x - numb.width - 5, 0),
-            app.screen.width - numb.width,
-          );
-          numb.y = y - numb.height / 2;
-        } else {
-          const number = new PIXI.Text({ text: num, style: textStyle });
-          number.x = Math.min(
-            Math.max(canvas.x - number.width - 5, 0),
-            app.screen.width - number.width,
-          );
-          number.y = y - number.height / 2;
-          number.label = "y";
-          grid.addChild(number);
-        }
-
-        grid.moveTo(-app.screen.width / 2 - lineSpacing, y);
-        grid.lineTo(app.screen.width + lineSpacing, y);
-        grid.stroke({ width: lineWidth, color: "grey" });
-      }
+      grid.moveTo(-screenWidth / 2 - lineSpacing, y);
+      grid.lineTo(screenWidth + lineSpacing, y);
+      hasMinorLines = true;
     }
 
-    if ((canvas.x < app.screen.width) ? 1 : 0) {
-      let x = canvas.x;
-      grid.moveTo(x, -app.screen.height / 2);
-      grid.lineTo(x, app.screen.height);
-      grid.stroke({ width: lineWidth, color: "black" });
+    if (hasMinorLines) {
+      grid.stroke({ width: lineWidth, color: "lightgrey" });
     }
 
-    if ((canvas.y < app.screen.height) ? 1 : 0) {
-      let y = canvas.y;
-      grid.moveTo(-app.screen.width / 2, y);
-      grid.lineTo(app.screen.width, y);
+    let xLabelCount = 0;
+    for (let i = 0; i < numVerticalLines; i++) {
+      const lineNumX = initialLineNumX - i;
+      const x = initialX + i * lineSpacing;
+
+      if (lineNumX === 0 || mod(lineNumX, 5) !== 0) {
+        continue;
+      }
+
+      const text = String(
+        parseFloat((-(lineNumX / 5) * majorStep).toFixed(majorStepPrecision)),
+      );
+      const label = this.getGridLabel(this.gridXLabels, xLabelCount, text);
+      label.x = x - label.width / 2;
+      label.y = clamp(canvas.y, 0, screenHeight - label.height);
+      xLabelCount += 1;
+
+      grid.moveTo(x, -screenHeight / 2 - lineSpacing);
+      grid.lineTo(x, screenHeight + lineSpacing);
+    }
+
+    this.trimGridLabels(this.gridXLabels, xLabelCount);
+
+    let yLabelCount = 0;
+    for (let i = 0; i < numHorizontalLines; i++) {
+      const lineNumY = initialLineNumY - i;
+      const y = initialY + i * lineSpacing;
+
+      if (lineNumY === 0 || mod(lineNumY, 5) !== 0) {
+        continue;
+      }
+
+      const text = String(
+        parseFloat(((lineNumY / 5) * majorStep).toFixed(majorStepPrecision)),
+      );
+      const label = this.getGridLabel(this.gridYLabels, yLabelCount, text);
+      label.x = clamp(canvas.x - label.width - 5, 0, screenWidth - label.width);
+      label.y = y - label.height / 2;
+      yLabelCount += 1;
+
+      grid.moveTo(-screenWidth / 2 - lineSpacing, y);
+      grid.lineTo(screenWidth + lineSpacing, y);
+    }
+
+    this.trimGridLabels(this.gridYLabels, yLabelCount);
+
+    if (xLabelCount > 0 || yLabelCount > 0) {
+      grid.stroke({ width: lineWidth, color: "grey" });
+    }
+
+    if (axisXVisible && axisYVisible) {
+      const originLabel = this.getOriginLabel();
+      originLabel.text = "0";
+      originLabel.x = clamp(
+        canvas.x - originLabel.width - 5,
+        0,
+        screenWidth - originLabel.width,
+      );
+      originLabel.y = clamp(canvas.y, 0, screenHeight - originLabel.height);
+      originLabel.visible = true;
+    } else if (this.gridOriginLabel) {
+      this.gridOriginLabel.visible = false;
+    }
+
+    let hasAxisLines = false;
+
+    if (axisXVisible) {
+      grid.moveTo(canvas.x, -screenHeight / 2);
+      grid.lineTo(canvas.x, screenHeight);
+      hasAxisLines = true;
+    }
+
+    if (axisYVisible) {
+      grid.moveTo(-screenWidth / 2, canvas.y);
+      grid.lineTo(screenWidth, canvas.y);
+      hasAxisLines = true;
+    }
+
+    if (hasAxisLines) {
       grid.stroke({ width: lineWidth, color: "black" });
     }
   }
@@ -294,6 +325,11 @@ class Canvas {
     this.app.ticker.stop();
   }
 
+  destroy() {
+    window.removeEventListener("resize", this.handleWindowResize);
+    this.app.destroy(true, { children: true });
+  }
+
   global2pos(x, y) {
     return this.pixiCanvas.toLocal({ x, y });
   }
@@ -322,16 +358,6 @@ class Canvas {
 }
 
 class ObjectGraphics {
-
-
-
-
-
-
-  
-
-
-
   canvas: Canvas;
   pos: { x: number; y: number };
   color: number;
@@ -437,11 +463,6 @@ class ObjectGraphics {
 }
 
 class BallG extends ObjectGraphics {
-
-
-
-
-
   r: number;
 
   constructor(canvas, props) {
@@ -502,12 +523,6 @@ class BallG extends ObjectGraphics {
 }
 
 class RectG extends ObjectGraphics {
-
-
-
-
-
-
   w: number;
   h: number;
 

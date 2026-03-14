@@ -1,53 +1,67 @@
-import styles from './Controls.module.css';
-import { useRef, useEffect } from 'react';
-import { objects } from '../../creator.js'
+import styles from "./Controls.module.css";
+import { useRef, useEffect } from "react";
+import { objects } from "../../creator.js";
+import { Plus, Minus } from "lucide-react";
 
 type props = {
-  isStopped: boolean
   speed: number;
   speedStep: number;
   setSpeed: (speed: number) => void;
 };
 
-export default function Speed({ isStopped, speed, speedStep, setSpeed }: props) {
-  let speedRef = useRef(null);
+export default function Speed({ speed, speedStep, setSpeed }: props) {
+  let speedRef = useRef<HTMLInputElement>(null);
 
   const speedDown = () => {
-    speedRef.current.stepDown();
-    setSpeed(speedRef.current.value);
-  }
+    if (speedRef.current) {
+      speedRef.current.stepDown();
+      setSpeed(Number(speedRef.current.value));
+    }
+  };
   const speedUp = () => {
-    speedRef.current.stepUp();
-    setSpeed(speedRef.current.value);
-  }
+    if (speedRef.current) {
+      speedRef.current.stepUp();
+      setSpeed(Number(speedRef.current.value));
+    }
+  };
 
-  useEffect(()=>{
-    objects.setSpeed(speed);
-  }, [speed])
+  useEffect(() => {
+    objects?.setSpeed(speed);
+  }, [speed]);
 
   return (
-    <>
-      {!isStopped && <div className={`${styles.speed} ${styles.button}`}>
-        <div
-          onClick={speedDown}
-          className={styles['speed-down']}
-        >
-          &lt;
-        </div>
-        <input
-          ref={speedRef}
-          className={styles['speed-input']}
-          type='number'
-          step={speedStep}
-          defaultValue={speed}
-          min='0' />
-        <div
-          onClick={speedUp}
-          className={styles['speed-up']}
-        >
-          &gt;
-        </div>
-      </div>}
-    </>
+    <div
+      className={styles.speed}
+      aria-label="Playback Speed"
+      title="Playback Speed"
+    >
+      <button
+        onClick={speedDown}
+        className={styles.button}
+        aria-label="Decrease playback speed"
+        title="Decrease playback speed"
+      >
+        <Minus size={18} />
+      </button>
+      <input
+        ref={speedRef}
+        className={styles["speed-input"]}
+        type="number"
+        step={speedStep}
+        value={speed}
+        min="0"
+        aria-label="Playback speed"
+        title="Playback speed"
+        onChange={(e) => setSpeed(Number(e.target.value))}
+      />
+      <button
+        onClick={speedUp}
+        className={styles.button}
+        aria-label="Increase playback speed"
+        title="Increase playback speed"
+      >
+        <Plus size={18} />
+      </button>
+    </div>
   );
 }

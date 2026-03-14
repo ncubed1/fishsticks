@@ -1,2 +1,3 @@
-declare module '*.css';
-declare module '*.svg';
+declare module "*.css";
+declare module "*.svg";
+/// <reference types="vite-plugin-terminal/client" />

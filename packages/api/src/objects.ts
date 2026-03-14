@@ -2,6 +2,7 @@
 
 import { Canvas, BallG, RectG } from "./graphics.js";
 import Vectors from "./vectors.js";
+import Timeline from './timeline.js';
 import { ewResize } from "./panZoom.js";
 
 import { Simulation, BallPhy, RectPhy } from "./physics.js";
@@ -14,7 +15,7 @@ function m2pos(pos) {
   return { x, y };
 }
 
-export default class Objects {canvas: any; graphicsObj: any; mainLoop: any; objects: any; objectsPut: any; objectsRemove: any; physicsObj: any; props: any; sim: any; simulation: any; speed: any; tickerFunc: any; timeStep: any; totalPausedTime: any; vectors: any; view: any;
+export default class Objects {canvas: any; graphicsObj: any; mainLoop: any; objects: any; timeline: any; objectsPut: any; objectsRemove: any; physicsObj: any; props: any; sim: any; simulation: any; speed: any; tickerFunc: any; timeStep: any; totalPausedTime: any; vectors: any; view: any;
 
 
 
@@ -45,6 +46,7 @@ export default class Objects {canvas: any; graphicsObj: any; mainLoop: any; obje
 
     canvasProps.s = s;
 
+    this.timeline = null;
     this.canvas = new Canvas(canvasProps);
     this.view = this.canvas.view;
 
@@ -60,6 +62,7 @@ export default class Objects {canvas: any; graphicsObj: any; mainLoop: any; obje
 
   async init() {
     await this.canvas.init();
+    this.timeline = new Timeline(this);
     ewResize(this.view, 0.002, (e, factor) => {
       if (e.ctrlKey) {
         this.view.style.cursor = "ew-resize";

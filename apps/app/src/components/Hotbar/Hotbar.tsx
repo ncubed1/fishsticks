@@ -27,8 +27,15 @@ const simplePropsR = {
   v: { x: 0.0, y: 0.0 },
 };
 
+type HotbarProps = {
+  isHidden: boolean;
+};
 
-export default function Hotbar() {
+export default function Hotbar({ isHidden }: HotbarProps) {
+  if (isHidden) {
+    return null;
+  }
+
   const ball = {
     iconType: "div",
     iconProps: { className: `${styles.circle}` },
